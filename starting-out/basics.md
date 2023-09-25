@@ -9,6 +9,8 @@
   - [Expressions](#expressions)
   - [Definitions](#definitions)
 - [An intro to lists](#an-intro-to-lists)
+- [Texas Ranges](#texas-ranges)
+- [I'm a list comprehension](#im-a-list-comprehension)
 
 # Basics
 
@@ -427,6 +429,193 @@ ghci> maximum [1,9,2,3,4]
 `sum` takes a list of numbers and returns their sum.
 
 `product` takes a list of numbers and returns their product.
+
+```hs
+ghci> sum [5,2,1,6,3,2,5,7]
+31
+ghci> product [6,2,1,2]
+24
+ghci> product [1,2,5,6,7,9,2,0]
+0
+```
+
+`elem` takes a thing and a list of things and tells us if that thing is an element of the list. It's usually called as an infix function because it's easier to read that way.
+
+```hs
+ghci> 4 `elem` [3,4,5,6]
+True
+ghci> elem 4 [3,4,5,6]
+True
+ghci> 10 `elem` [3,4,5,6]
+False
+```
+
+# Texas ranges
+
+What if we want a list of all numbers between 1 and 20? Sure, we could just type them all out but obviously that's not a solution for gentlemen who demand excellence from their programming languages. Instead, we'll use ranges. Ranges are a way of making lists that are arithmetic sequences of elements that can be enumerated. Numbers can be enumerated. One, two, three, four, etc. Characters can also be enumerated. The alphabet is an enumeration of characters from A to Z. Names can't be enumerated. What comes after "John"? I don't know.
+
+To make a list containing all the natural numbers from 1 to 20, you just write `[1..20]`. That is the equivalent of writing `[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]` and there's no difference between writing one or the other except that writing out long enumeration sequences manually is stupid.
+
+```hs
+ghci> [1..20]
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+ghci> ['a'..'z']
+"abcdefghijklmnopqrstuvwxyz"
+ghci> ['K'..'Z']
+"KLMNOPQRSTUVWXYZ"
+ghci> ['A'..'z']
+"ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz"
+```
+
+Ranges are cool because you can also specify a step. What if we want all even numbers between 1 and 20? Or every third number between 1 and 20?
+
+```hs
+ghci> [2,4..20]
+[2,4,6,8,10,12,14,16,18,20]
+ghci> [3,6..20]
+[3,6,9,12,15,18]
+```
+
+It's simply a matter of separating the first two elements with a comma and then specifying what the upper limit is. While pretty smart, ranges with steps aren't as smart as some people expect them to be. You can't do `[1,2,4,8,16..100]` and expect to get all the powers of 2. Firstly because you can only specify one step. And secondly because some sequences that aren't arithmetic are ambiguous if given only by a few of their first terms.
+
+To make a list with all the numbers from 20 to 1, you can't just do `[20..1]`, you have to do `[20,19..1]`.
+
+Watch out when using floating point numbers in ranges! Because they are not completely precise (by definition), their use in ranges can yield some pretty funky results.
+
+```hs
+ghci> [0.1, 0.3 .. 1]
+[0.1,0.3,0.5,0.7,0.8999999999999999,1.0999999999999999]
+```
+
+My advice is not to use them in list ranges.
+
+You can also use ranges to make infinite lists by just not specifying an upper limit. Later we'll go into more detail on infinite lists. For now, let's examine how you would get the first 24 multiples of 13. Sure, you could do `[13,26..24*13]`. But there's a better way: take 24 `[13,26..]`. Because Haskell is lazy, it won't try to evaluate the infinite list immediately because it would never finish. It'll wait to see what you want to get out of that infinite lists. And here it sees you just want the first 24 elements and it gladly obliges.
+
+A handful of functions that produce infinite lists:
+
+`cycle` takes a list and cycles it into an infinite list. If you just try to display the result, it will go on forever so you have to slice it off somewhere.
+
+```hs
+ghci> take 10 (cycle [1,2,3])
+[1,2,3,1,2,3,1,2,3,1]
+ghci> take 12 (cycle "LOL ")
+"LOL LOL LOL "
+```
+
+`repeat` takes an element and produces an infinite list of just that element. It's like cycling a list with only one element.
+
+```hs
+ghci> take 10 (repeat 5)
+[5,5,5,5,5,5,5,5,5,5]
+```
+
+Although it's simpler to just use the `replicate` function if you want some number of the same element in a list. `replicate 3 10` returns `[10,10,10]`.
+
+# I'm a list comprehension
+
+If you've ever taken a course in mathematics, you've probably run into set comprehensions. They're normally used for building more specific sets out of general sets. A basic comprehension for a set that contains the first ten even natural numbers is
+
+<img alt="set notation" src="https://s3.amazonaws.com/lyah/setnotation.png"> .
+
+The part before the pipe is called the output function, `x` is the variable, `N` is the input set and `x <= 10` is the predicate. That means that the set contains the doubles of all natural numbers that satisfy the predicate.
+
+List comprehensions are very similar to set comprehensions. We'll stick to getting the first 10 even numbers for now. The list comprehension we could use is `[x *2 | x <- [1..10]]`. x is drawn from `[1..10]` and for every element in `[1..10]` (which we have bound to x), we get that element, only doubled. Here's that comprehension in action.
+
+```hs
+ghci> [x*2 | x <- [1..10]]
+[2,4,6,8,10,12,14,16,18,20]
+```
+
+As you can see, we get the desired results. Now let's add a condition (or a predicate) to that comprehension. Predicates go after the binding parts and are separated from them by a comma. Let's say we want only the elements which, doubled, are greater than or equal to 12.
+
+```hs
+ghci> [x*2 | x <- [1..10], x*2 >= 12]
+[12,14,16,18,20]
+```
+
+Success! Note that weeding out lists by predicates is also called filtering. We took a list of numbers and we filtered them by the predicate. Now for another example. Let's say we want a comprehension that replaces each odd number greater than 10 with "BANG!" and each odd number that's less than 10 with "BOOM!". If a number isn't odd, we throw it out of our list. For convenience, we'll put that comprehension inside a function so we can easily reuse it.
+
+```hs
+boomBangs xs = [ if x < 10 then "BOOM!" else "BANG!" | x <- xs, odd x]
+```
+
+The last part of the comprehension is the predicate. The function `odd` returns `True` on an odd number and `False` on an even one. The element is included in the list only if all the predicates evaluate to `True`.
+
+We can include several predicates. If we wanted all numbers from 10 to 20 that are not 13, 15 or 19, we'd do:
+
+```hs
+ghci> [ x | x <- [10..20], x /= 13, x /= 15, x /= 19]
+[10,11,12,14,16,17,18,20]
+```
+
+Not only can we have multiple predicates in list comprehensions (an element must satisfy all the predicates to be included in the resulting list), we can also draw from several lists. When drawing from several lists, comprehensions produce all combinations of the given lists and then join them by the output function we supply. A list produced by a comprehension that draws from two lists of length 4 will have a length of 16, provided we don't filter them. If we have two lists, `[2,5,10]` and `[8,10,11]` and we want to get the products of all the possible combinations between numbers in those lists, here's what we'd do.
+
+```hs
+ghci> [ x*y | x <- [2,5,10], y <- [8,10,11]]
+[16,20,22,40,50,55,80,100,110]
+```
+
+How about a list comprehension that combines a list of adjectives and a list of nouns … for epic hilarity.
+
+```hs
+ghci> let nouns = ["hobo","frog","pope"]
+ghci> let adjectives = ["lazy","grouchy","scheming"]
+ghci> [adjective ++ " " ++ noun | adjective <- adjectives, noun <- nouns]
+["lazy hobo","lazy frog","lazy pope","grouchy hobo","grouchy frog",
+"grouchy pope","scheming hobo","scheming frog","scheming pope"]
+```
+
+I know! Let's write our own version of length! We'll call it length'.
+
+```hs
+length' xs = sum [1 | _ <- xs]
+```
+
+`_` means that we don't care what we'll draw from the list anyway so instead of writing a variable name that we'll never use, we just write `_`.
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
+
+```hs
+
+```
 
 ```hs
 
