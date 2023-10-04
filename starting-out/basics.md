@@ -11,6 +11,7 @@
 - [An intro to lists](#an-intro-to-lists)
 - [Texas Ranges](#texas-ranges)
 - [I'm a list comprehension](#im-a-list-comprehension)
+- [Tuples](#tuples)
 
 # Basics
 
@@ -573,44 +574,98 @@ length' xs = sum [1 | _ <- xs]
 
 `_` means that we don't care what we'll draw from the list anyway so instead of writing a variable name that we'll never use, we just write `_`.
 
-```hs
+Just a friendly reminder: because strings are lists, we can use list comprehensions to process and produce strings. Here's a function that takes a string and removes everything except uppercase letters from it.
 
+```hs
+removeNonUppercase st = [ c | c <- st, c `elem` ['A'..'Z']]
 ```
 
-```hs
+Testing it out:
 
+```hs
+ghci> removeNonUppercase "Hahaha! Ahahaha!"
+"HA"
+ghci> removeNonUppercase "IdontLIKEFROGS"
+"ILIKEFROGS"
 ```
 
-```hs
+Nested list comprehensions are also possible if you're operating on lists that contain lists. A list contains several lists of numbers. Let's remove all odd numbers without flattening the list.
 
+```hs
+ghci> let xxs = [[1,3,5,2,3,1,2,4,5],[1,2,3,4,5,6,7,8,9],[1,2,4,2,1,6,3,1,3,2,3,6]]
+ghci> [ [ x | x <- xs, even x ] | xs <- xxs]
+[[2,2,4],[2,4,6,8],[2,4,2,6,2,6]]
 ```
 
-```hs
+You can write list comprehensions across several lines. So if you're not in GHCI, it's better to split longer list comprehensions across multiple lines, especially if they're nested.
 
+# Tuples
+
+In some ways, tuples are like lists — they are a way to store several values into a single value. However, there are a few fundamental differences. A list of numbers is a list of numbers. That's its type and it doesn't matter if it has only one number in it or an infinite amount of numbers. Tuples, however, are used when you know exactly how many values you want to combine and its type depends on how many components it has and the types of the components. They are denoted with parentheses and their components are separated by commas.
+
+Another key difference is that they don't have to be homogenous. Unlike a list, a tuple can contain a combination of several types.
+
+Think about how we'd represent a two-dimensional vector in Haskell. One way would be to use a list. That would kind of work. So what if we wanted to put a couple of vectors in a list to represent points of a shape on a two-dimensional plane? We could do something like `[[1,2],[8,11],[4,5]]`. The problem with that method is that we could also do stuff like `[[1,2],[8,11,5],[4,5]]`, which Haskell has no problem with since it's still a list of lists with numbers but it kind of doesn't make sense. But a tuple of size two (also called a pair) is its own type, which means that a list can't have a couple of pairs in it and then a triple (a tuple of size three), so let's use that instead. Instead of surrounding the vectors with square brackets, we use parentheses: `[(1,2),(8,11),(4,5)]`. What if we tried to make a shape like `[(1,2),(8,11,5),(4,5)]`? Well, we'd get this error:
+
+```hs
+Couldn't match expected type `(t, t1)'
+against inferred type `(t2, t3, t4)'
+In the expression: (8, 11, 5)
+In the expression: [(1, 2), (8, 11, 5), (4, 5)]
+In the definition of `it': it = [(1, 2), (8, 11, 5), (4, 5)]
 ```
 
-```hs
+It's telling us that we tried to use a pair and a triple in the same list, which is not supposed to happen. You also couldn't make a list like `[(1,2),("One",2)]` because the first element of the list is a pair of numbers and the second element is a pair consisting of a string and a number.
 
+Like lists, tuples can be compared with each other if their components can be compared. Only you can't compare two tuples of different sizes, whereas you can compare two lists of different sizes. Two useful functions that operate on pairs:
+
+`fst` takes a pair and returns its first component.
+
+```hs
+ghci> fst (8,11)
+8
+ghci> fst ("Wow", False)
+"Wow"
 ```
 
-```hs
+`snd` takes a pair and returns its second component. Surprise!
 
+```hs
+ghci> snd (8,11)
+11
+ghci> snd ("Wow", False)
+False
 ```
 
-```hs
+> **Note:** these functions operate only on pairs. They won't work on triples, 4-tuples, 5-tuples, etc. We'll go over extracting data from tuples in different ways a bit later.
 
+A cool function that produces a list of pairs: `zip`. It takes two lists and then zips them together into one list by joining the matching elements into pairs. It's a really simple function but it has loads of uses. It's especially useful for when you want to combine two lists in a way or traverse two lists simultaneously. Here's a demonstration.
+
+```hs
+ghci> zip [1,2,3,4,5] [5,5,5,5,5]
+[(1,5),(2,5),(3,5),(4,5),(5,5)]
+ghci> zip [1 .. 5] ["one", "two", "three", "four", "five"]
+[(1,"one"),(2,"two"),(3,"three"),(4,"four"),(5,"five")]
 ```
 
-```hs
+It pairs up the elements and produces a new list. The first element goes with the first, the second with the second, etc. Notice that because pairs can have different types in them, `zip` can take two lists that contain different types and zip them up. What happens if the lengths of the lists don't match?
 
+```hs
+ghci> zip [5,3,2,6,2,7,2,5,4,6,6] ["im","a","turtle"]
+[(5,"im"),(3,"a"),(2,"turtle")]
 ```
 
-```hs
+The longer list simply gets cut off to match the length of the shorter one. Because Haskell is lazy, we can zip finite lists with infinite lists:
 
+```hs
+ghci> zip [1..] ["apple", "orange", "cherry", "mango"]
+[(1,"apple"),(2,"orange"),(3,"cherry"),(4,"mango")]
 ```
 
-```hs
+List comprehension to get all right triangles.
 
+```hs
+ghci> let rightTriangles = [ (a,b,c) | c <- [1..10], b <- [1..c], a <- [1..b], a^2 + b^2 == c^2]
 ```
 
 ```hs
