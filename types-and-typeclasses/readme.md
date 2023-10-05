@@ -225,17 +225,97 @@ ghci> read "[1,2,3,4]" :: [Int]
 ghci> read "(3, 'a')" :: (Int, Char)  
 (3, 'a')  
 ```
-
+- `Enum` members are sequentially ordered types — they can be enumerated. The main advantage of the `Enum` typeclass is that we can use its types in list ranges. They also have defined successors and predecessors, which you can get with the `succ` and `pred` functions. Types in this class: `()`, `Bool`, `Char`, `Ordering`, `Int`, `Integer`, `Float` and `Double`.
 
 
 ```hs
-
+ghci> ['a'..'e']  
+"abcde"  
+ghci> [LT .. GT]  
+[LT,EQ,GT]  
+ghci> [3 .. 5]  
+[3,4,5]  
+ghci> succ 'B'  
+'C'  
 ```
 
-```hs
+`Bounded` members have an upper and a lower bound.
 
+```hs
+ghci> minBound :: Int  
+-9223372036854775808
+ghci> maxBound :: Char  
+'\1114111'  
+ghci> maxBound :: Bool  
+True  
+ghci> minBound :: Bool  
+False  
 ```
 
-```hs
+`minBound` and `maxBound` are interesting because they have a type of (Bounded a) => a. In a sense they are polymorphic constants.
 
+All tuples are also part of `Bounded` if the components are also in it.
+
+```hs
+ghci> maxBound :: (Bool, Int, Char)  
+(True,9223372036854775807,'\1114111')  
+```
+
+- `Num` is a numeric typeclass. Its members have the property of being able to act like numbers. Let's examine the type of a number.
+
+```hs
+ghci> :t 20  
+20 :: (Num t) => t  
+
+ghci> :t (20)
+(20) :: Num a => a
+```
+
+It appears that whole numbers are also polymorphic constants. They can act like any type that's a member of the `Num` typeclass.
+
+```hs
+ghci> 20 :: Int  
+20  
+ghci> 20 :: Integer  
+20  
+ghci> 20 :: Float  
+20.0  
+ghci> 20 :: Double  
+20.0  
+ghci> 20 :: (Int)     
+20
+```
+
+Those are types that are in the `Num` typeclass. If we examine the type of `*`, we'll see that it accepts all numbers.
+
+```hs
+ghci> :t (*)  
+(*) :: (Num a) => a -> a -> a  
+```
+
+It takes two numbers of the same type and returns a number of that type. That's why `(5 :: Int) * (6 :: Integer)` will result in a type error whereas `5 * (6 :: Integer)` will work just fine and produce an `Integer` because `5` can act like an `Integer` or an `Int`.
+
+To join `Num`, a type must already be friends with `Show` and `Eq`.
+
+- `Integral` is also a numeric typeclass. Num includes all numbers, including real numbers and integral numbers, `Integral` includes only integral (whole) numbers. In this typeclass are `Int` and `Integer`.
+
+- `Floating` includes only floating point numbers, so `Float` and `Double`.
+
+A very useful function for dealing with numbers is `fromIntegral`. It has a type declaration of `fromIntegral :: (Num b, Integral a) => a -> b`. From its type signature we see that it takes an integral number and turns it into a more general number. That's useful when you want integral and floating point types to work together nicely. For instance, the `length` function has a type declaration of `length :: [a] -> Int` instead of having a more general type of `(Num b) => length :: [a] -> b`. I think that's there for historical reasons or something, although in my opinion, it's pretty stupid. Anyway, if we try to get a length of a list and then add it to `3.2`, we'll get an error because we tried to add together an Int and a floating point number. 
+
+```hs
+ghci> length [1,2] + 3.2
+
+<interactive>:32:16: error:
+    * No instance for (Fractional Int) arising from the literal `3.2'
+    * In the second argument of `(+)', namely `3.2'
+      In the expression: length [1, 2] + 3.2
+      In an equation for `it': it = length [1, 2] + 3.2
+```
+
+So to get around this, we do fromIntegral (length [1,2]) + 3.2 and it all works out.
+
+```hs
+ghci> fromIntegral (length [1,2]) + 3.2
+5.2
 ```
