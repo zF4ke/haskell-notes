@@ -4,6 +4,9 @@
 - [Some higher-orderism is in order](#some-higher-orderism-is-in-order)
 - [Maps and filters](#maps-and-filters)
 - [Lambdas](#lambdas)
+- [Only folds and horses](#only-folds-and-horses)
+- [Function application with $](#function-application-with)
+- [Function composition](#function-composition)
 
 Haskell functions can take functions as parameters and return functions as return values. A function that does either of those is called a higher order function. Higher order functions aren't just a part of the Haskell experience, they pretty much are the Haskell experience. It turns out that if you want to define computations by defining what stuff is instead of defining steps that change some state and maybe looping them, higher order functions are indispensable. They're a really powerful way of solving problems and thinking about programs.
 
@@ -171,3 +174,123 @@ Let's implement `sum` again, only this time, we'll use a fold instead of explici
 sum' :: (Num a) => [a] -> a
 sum' xs = foldl (\acc x -> acc + x) 0 xs
 ```
+
+<img style="background-color: white" alt="list monster" src="https://learnyouahaskell.github.io/assets/images/higher-order-functions/foldl.png">
+
+This professional diagram on the left illustrates how a fold happens, step by step (day by day!). The greenish brown number is the accumulator value. You can see how the list is sort of consumed up from the left side by the accumulator. Om nom nom nom! If we take into account that functions are curried, we can write this implementation ever more succinctly, like so:
+
+```hs
+sum' :: (Num a) => [a] -> a  
+sum' = foldl (+) 0  
+```
+
+**Folds can be used to implement any function where you traverse a list once, element by element, and then return something based on that. Whenever you want to traverse a list to return something, chances are you want a fold.**
+
+The `foldl1` and `foldr1` functions work much like `foldl` and `foldr`, only you don't need to provide them with an explicit starting value. They assume the first (or last) element of the list to be the starting value and then start the fold with the element next to it. With that in mind, the sum function can be implemented like so: `sum = foldl1 (+)`. Because they depend on the lists they fold up having at least one element, they cause runtime errors if called with empty lists. `foldl` and `foldr`, on the other hand, work fine with empty lists. When making a fold, think about how it acts on an empty list. If the function doesn't make sense when given an empty list, you can probably use a `foldl1` or `foldr1` to implement it.
+
+Just to show you how powerful folds are, we're going to implement a bunch of standard library functions by using folds:
+
+```hs
+maximum' :: (Ord a) => [a] -> a  
+maximum' = foldr1 (\x acc -> if x > acc then x else acc)  
+    
+reverse' :: [a] -> [a]  
+reverse' = foldl (\acc x -> x : acc) []  
+    
+product' :: (Num a) => [a] -> a  
+product' = foldr1 (*)  
+    
+filter' :: (a -> Bool) -> [a] -> [a]  
+filter' p = foldr (\x acc -> if p x then x : acc else acc) []  
+    
+head' :: [a] -> a  
+head' = foldr1 (\x _ -> x)  
+    
+last' :: [a] -> a  
+last' = foldl1 (\_ x -> x)  
+```
+
+**`scanl`** and **`scanr`** are like `foldl` and `foldr`, only they report all the intermediate accumulator states in the form of a list. There are also `scanl1` and `scanr1`, which are analogous to `foldl1` and `foldr1`.
+
+```hs
+ghci> scanl (+) 0 [3,5,2,1]  
+[0,3,8,10,11]  
+ghci> scanr (+) 0 [3,5,2,1]  
+[11,8,3,1,0]  
+ghci> scanl1 (\acc x -> if x > acc then x else acc) [3,4,5,3,7,9,2,1]  
+[3,4,5,5,7,9,9,9]  
+ghci> scanl (flip (:)) [] [3,2,1]  
+[[],[3],[2,3],[1,2,3]]  
+```
+
+When using a `scanl`, the final result will be in the last element of the resulting list while a `scanr` will place the result in the head.
+
+Scans are used to monitor the progression of a function that can be implemented as a fold. Let's answer us this question: **How many elements does it take for the sum of the roots of all natural numbers to exceed 1000?** To get the squares of all natural numbers, we just do `map sqrt [1..]`. Now, to get the sum, we could do a fold, but because we're interested in how the sum progresses, we're going to do a scan. Once we've done the scan, we just see how many sums are under 1000. The first sum in the scanlist will be 1, normally. The second will be 1 plus the square root of 2. The third will be that plus the square root of 3. If there are X sums under 1000, then it takes X+1 elements for the sum to exceed 1000.
+
+```hs
+sqrtSums :: Int  
+sqrtSums = length (takeWhile (<1000) (scanl1 (+) (map sqrt [1..]))) + 1  
+```
+
+# Function application with $
+
+Alright, next up, we'll take a look at the $ function, also called *function application*. First of all, let's check out how it's defined:
+
+```hs
+($) :: (a -> b) -> a -> b  
+f $ x = f x  
+```
+
+What the heck? What is this useless operator? It's just function application! Well, almost, but not quite! Whereas normal function application (putting a space between two things) has a really high precedence, the `$` function has the lowest precedence. Function application with a space is left-associative (so f a b c is the same as `(((f a) b) c)`), function application with `$` is right-associative.
+
+That's all very well, but how does this help us? Most of the time, it's a convenience function so that we don't have to write so many parentheses. Consider the expression `sum (map sqrt [1..130])`. Because `$` has such a low precedence, we can rewrite that expression as `sum $ map sqrt [1..130]`, saving ourselves precious keystrokes!
+
+How about `sum (filter (> 10) (map (*2) [2..10]))`? Well, because `$` is right-associative, `f (g (z x))` is equal to `f $ g $ z x`. And so, we can rewrite `sum (filter (> 10) (map (*2) [2..10]))` as `sum $ filter (> 10) $ map (*2) [2..10]`. 
+
+But apart from getting rid of parentheses, `$` means that function application can be treated just like another function. That way, we can, for instance, map function application over a list of functions.
+
+```hs
+ghci> map ($ 3) [(4+), (10*), (^2), sqrt]  
+[7.0,30.0,9.0,1.7320508075688772]  
+```
+
+# Function composition
+
+In mathematics, function composition is defined like this: `(f . g)(x) = f(g(x))`, meaning that composing two functions produces a new function that, when called with a parameter, say, x is the equivalent of calling g with the parameter x and then calling the f with that result.
+
+In Haskell, function composition is pretty much the same thing. We do function composition with the `.` function, which is defined like so:
+
+```hs
+(.) :: (b -> c) -> (a -> b) -> a -> c  
+f . g = \x -> f (g x)  
+```
+
+Here are some examples:
+
+```hs
+k = a . b . c $ value
+```
+
+```hs
+ghci> sum $ filter (> 10) $ map (*2) [2..10]
+80
+ghci> sum . filter (> 10) . map (*2) $ [2..10]
+80
+```
+
+```hs
+oddSquareSum :: Integer  
+oddSquareSum = sum . takeWhile (<10000) . filter odd . map (^2) $ [1..]  
+```
+
+However, if there was a chance of someone else reading that code, I would have written it like this:
+
+```hs
+oddSquareSum :: Integer  
+oddSquareSum = 
+    let oddSquares = filter odd $ map (^2) [1..]  
+        belowLimit = takeWhile (<10000) oddSquares  
+    in  sum belowLimit  
+```
+
+It wouldn't win any code golf competition, but someone reading the function will probably find it easier to read than a composition chain.
