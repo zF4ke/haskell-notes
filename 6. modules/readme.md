@@ -2,6 +2,7 @@
 
 - [Loading Modules](#loading-modules)
 - [Data.List](#datalist)
+- [Making our own modules](#making-our-own-modules)
 
 # Loading modules
 
