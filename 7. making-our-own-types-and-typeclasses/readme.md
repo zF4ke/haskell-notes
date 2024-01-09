@@ -2,6 +2,9 @@
 
 - [Algebraic data types intro](#algebraic-data-types-intro)
 - [Record syntax](#record-syntax)
+- [Type parameters](#type-parameters)
+- [Derived instances](#derived-instances)
+- [Type synonyms](#type-synonyms)
 
 # Algebraic data types intro
 
